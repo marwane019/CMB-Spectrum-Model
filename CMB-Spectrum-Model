@@ -1,0 +1,75 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+# Constants
+h = 0.7  # Hubble constant in units of 100 km/s/Mpc
+omega_m = 0.3  # Matter density parameter
+omega_lambda = 0.7  # Dark energy density parameter
+omega_b = 0.05  # Baryon density parameter
+omega_c = omega_m - omega_b  # Cold dark matter density parameter
+T0 = 2.725  # Average temperature of the CMB in Kelvin
+
+# Cosmological parameters
+H0 = 100 * h  # Hubble constant in km/s/Mpc
+H0_SI = H0 * 1e3 / 3.086e22  # Hubble constant in s^-1
+
+# Function to compute the scale factor a(t)
+def scale_factor(z):
+    return 1 / (1 + z)
+
+# Function to compute the Hubble parameter H(z)
+def Hubble_parameter(z):
+    return H0_SI * np.sqrt(omega_m * (1 + z)**3 + omega_lambda)
+
+# Function to compute the differential equations
+def differential_eqs(y, z):
+    dTdz = -y[0] / (1 + z)  # Temperature evolution
+    dphi_dz = -Hubble_parameter(z) * y[1]  # Gravitational potential evolution
+    return [dTdz, dphi_dz]
+
+# Function to compute the CMB power spectrum
+def cmb_power_spectrum(l, z):
+    k = l / 3000  # Approximate wavenumber
+    return (k**2) * np.abs(1 - 3 * omega_m * (1 + z)**3 / (2 * Hubble_parameter(z)**2))**2
+
+# Redshift range
+z_vals = np.linspace(0, 1100, 100)  # From decoupling (z ~ 1100) to now (z = 0)
+
+# Initial conditions
+T_initial = T0  # Initial temperature at decoupling
+phi_initial = 0  # Initial gravitational potential
+initial_conditions = [T_initial, phi_initial]
+
+# Solve the differential equations
+solution = odeint(differential_eqs, initial_conditions, z_vals)
+
+# Extract the temperature and gravitational potential
+temperature = solution[:, 0]
+gravitational_potential = solution[:, 1]
+
+# Compute the CMB power spectrum
+l_vals = np.arange(2, 2000)
+power_spectrum_vals = [cmb_power_spectrum(l, z_vals[50]) for l in l_vals]  # Example at z = 50
+
+# Plot the results
+fig, ax = plt.subplots(2, 1, figsize=(10, 12))
+
+# Plot temperature evolution
+ax[0].plot(z_vals, temperature, label='Temperature Evolution')
+ax[0].set_xlabel('Redshift (z)')
+ax[0].set_ylabel('Temperature (K)')
+ax[0].set_title('CMB Temperature Evolution')
+ax[0].grid(True)
+ax[0].legend()
+
+# Plot CMB power spectrum
+ax[1].plot(l_vals, power_spectrum_vals, label='CMB Power Spectrum')
+ax[1].set_xlabel('Multipole Moment (l)')
+ax[1].set_ylabel('C_l')
+ax[1].set_title('CMB Power Spectrum')
+ax[1].grid(True)
+ax[1].legend()
+
+plt.tight_layout()
+plt.show()
